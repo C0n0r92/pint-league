@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "907284861182",
+    "project_id": "pints-league",
+    "storage_bucket": "pints-league.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:907284861182:android:c5dad6deed3b68315595af",
+        "android_client_info": {
+          "package_name": "com.conor.pintleague"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSWTjczWBB6XvQXQqGLGNpaCcNKWV-8G8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

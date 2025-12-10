@@ -1,0 +1,88 @@
+name: pintsleague
+description: Pints League - Track pub visits, compete with friends in fantasy-style leagues.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # Backend
+  supabase_flutter: ^2.3.0
+
+  # Navigation
+  go_router: ^13.0.0
+
+  # Location & Geofencing
+  geolocator: ^10.1.0
+  permission_handler: ^11.1.0
+
+  # Background Tasks
+  workmanager: ^0.5.2
+  shared_preferences: ^2.2.2
+
+  # Notifications
+  flutter_local_notifications: ^16.3.0
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.9
+
+  # Contacts
+  flutter_contacts: ^1.1.7+1
+
+  # Networking & Utils
+  http: ^1.1.2
+  crypto: ^3.0.3
+  intl: ^0.18.1
+  uuid: ^4.2.2
+
+  # UI Components
+  cached_network_image: ^3.3.1
+  flutter_svg: ^2.0.9
+  shimmer: ^3.0.0
+  
+  # Image Handling
+  image_picker: ^1.0.5
+  image_cropper: ^5.0.1
+
+  # Code Generation
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  
+  # Code Generation
+  build_runner: ^2.4.7
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.3.9
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
