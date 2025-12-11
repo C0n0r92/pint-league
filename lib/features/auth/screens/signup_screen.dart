@@ -31,21 +31,20 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final email = _emailController.text.trim();
+      
       await Supabase.instance.client.auth.signUp(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
         data: {
           'username': _usernameController.text.trim(),
         },
+        emailRedirectTo: 'com.conor.pintleague://login-callback',
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created! Please check your email to verify.'),
-          ),
-        );
-        context.go('/');
+        // Navigate to email confirmation screen
+        context.go('/confirm-email', extra: email);
       }
     } on AuthException catch (e) {
       if (mounted) {

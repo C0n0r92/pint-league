@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/signup_screen.dart';
 import '../features/auth/screens/onboarding_screen.dart';
+import '../features/auth/screens/email_confirmation_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/pints/screens/log_pint_screen.dart';
 import '../features/pints/screens/pint_history_screen.dart';
@@ -61,7 +62,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup' ||
-          state.matchedLocation == '/onboarding';
+          state.matchedLocation == '/onboarding' ||
+          state.matchedLocation == '/confirm-email';
 
       if (!isLoggedIn && !isAuthRoute) {
         return '/onboarding';
@@ -84,6 +86,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/confirm-email',
+        builder: (context, state) {
+          final email = state.extra as String? ?? '';
+          return EmailConfirmationScreen(email: email);
+        },
+      ),
+      
+      // Deep link callback for email confirmation
+      GoRoute(
+        path: '/login-callback',
+        builder: (context, state) => const _AuthCallbackHandler(),
       ),
 
       // Main app with bottom navigation
@@ -315,6 +330,106 @@ class _TrueLayerCallbackHandlerState extends State<TrueLayerCallbackHandler> {
             SizedBox(height: 16),
             Text('Connecting your bank...'),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Handler for email confirmation deep links
+class _AuthCallbackHandler extends StatefulWidget {
+  const _AuthCallbackHandler();
+
+  @override
+  State<_AuthCallbackHandler> createState() => _AuthCallbackHandlerState();
+}
+
+class _AuthCallbackHandlerState extends State<_AuthCallbackHandler> {
+  String _status = 'Confirming your email...';
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _handleCallback();
+  }
+
+  Future<void> _handleCallback() async {
+    // The Supabase client automatically handles the auth callback
+    // when the app is opened with the deep link
+    await Future.delayed(const Duration(seconds: 1));
+    
+    if (mounted) {
+      final session = Supabase.instance.client.auth.currentSession;
+      
+      if (session != null) {
+        // User is now logged in
+        setState(() => _status = 'Email confirmed! Redirecting...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          context.go('/');
+        }
+      } else {
+        // No session - email confirmed but need to login
+        setState(() {
+          _status = 'Email confirmed! Please log in.';
+          _hasError = false;
+        });
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          context.go('/login');
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (!_hasError) ...[
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.email_outlined,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const CircularProgressIndicator(),
+              ] else ...[
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red.shade400,
+                ),
+              ],
+              const SizedBox(height: 16),
+              Text(
+                _status,
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              if (_hasError) ...[
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Go to Login'),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
