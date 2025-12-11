@@ -46,6 +46,8 @@ dependencies:
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.9
   shimmer: ^3.0.0
+  confetti: ^0.7.0
+  lottie: ^3.1.0
   
   # Image Handling
   image_picker: ^1.0.5

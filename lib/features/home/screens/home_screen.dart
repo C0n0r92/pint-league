@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -94,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonLoading(type: SkeletonType.homeScreen)
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
@@ -257,6 +258,14 @@ class _WeeklyStatsCard extends StatelessWidget {
     final breakdown =
         weeklyPoints?['breakdown'] as Map<String, dynamic>? ?? {};
 
+    // Calculate pints from base points (10 pts per pint)
+    final basePoints = breakdown['base'] ?? 0;
+    final pintsCount = basePoints ~/ 10;
+    
+    // Calculate unique pubs from bonus (5 pts per new pub)
+    final uniquePubPoints = breakdown['unique_pubs'] ?? 0;
+    final uniquePubsCount = uniquePubPoints ~/ 5;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -277,12 +286,19 @@ class _WeeklyStatsCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Text(
-                    '$total pts',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star, size: 16, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$total pts',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -293,32 +309,78 @@ class _WeeklyStatsCard extends StatelessWidget {
               children: [
                 _StatItem(
                   label: 'Pints',
-                  value: '${breakdown['base_pints'] ?? 0}',
+                  value: '$pintsCount',
                   icon: Icons.sports_bar,
                 ),
                 _StatItem(
-                  label: 'Pubs',
-                  value: '${(breakdown['unique_pubs'] ?? 0) ~/ 3}',
-                  icon: Icons.location_on,
+                  label: 'New Pubs',
+                  value: '$uniquePubsCount',
+                  icon: Icons.explore,
                 ),
                 _StatItem(
-                  label: 'Bonus',
-                  value: '${_calculateBonus(breakdown)}',
-                  icon: Icons.star,
+                  label: 'Streak',
+                  value: _getStreakEmoji(breakdown['streak'] ?? 0),
+                  icon: Icons.local_fire_department,
                 ),
               ],
             ),
+            
+            // Show breakdown if user has points
+            if (total > 0) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              _BreakdownRow(
+                items: [
+                  if (basePoints > 0) ('Pints', basePoints as int),
+                  if (uniquePubPoints > 0) ('New pubs', uniquePubPoints as int),
+                  if ((breakdown['social'] ?? 0) > 0) ('Social', (breakdown['social'] as num).toInt()),
+                  if ((breakdown['streak'] ?? 0) > 0) ('Streak', (breakdown['streak'] as num).toInt()),
+                  if ((breakdown['verification'] ?? 0) > 0) ('Verified', (breakdown['verification'] as num).toInt()),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  int _calculateBonus(Map<String, dynamic> breakdown) {
-    return (breakdown['social_bonus'] ?? 0) +
-        (breakdown['pub_crawl_bonus'] ?? 0) +
-        (breakdown['monday_bonus'] ?? 0) +
-        (breakdown['verified_bonus'] ?? 0);
+  String _getStreakEmoji(int streakPoints) {
+    if (streakPoints >= 25) return '🔥7+';
+    if (streakPoints >= 10) return '🔥3+';
+    return '—';
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  final List<(String, int)> items;
+
+  const _BreakdownRow({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '${item.$1}: +${item.$2}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 }
 

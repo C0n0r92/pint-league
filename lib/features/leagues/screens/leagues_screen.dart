@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 
 class LeaguesScreen extends StatefulWidget {
   const LeaguesScreen({super.key});
@@ -56,7 +57,10 @@ class _LeaguesScreenState extends State<LeaguesScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: SkeletonLoading(type: SkeletonType.leagueList, itemCount: 4),
+            )
           : _leagues.isEmpty
               ? _EmptyLeagues(
                   onCreateTap: () => context.push('/leagues/create'),

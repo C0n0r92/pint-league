@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
+import '../../../core/widgets/pint_celebration.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 
 class LogPintScreen extends StatefulWidget {
   const LogPintScreen({super.key});
@@ -22,11 +25,36 @@ class _LogPintScreenState extends State<LogPintScreen> {
   bool _isLoadingNearby = false;
   bool _isSearching = false;
   bool _isSubmitting = false;
+  bool _hasLocationPermission = true;
+  bool _checkingPermission = true;
 
   @override
   void initState() {
     super.initState();
-    _loadNearbyPubs();
+    _checkPermissionAndLoad();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkPermissionAndLoad() async {
+    final permission = await Geolocator.checkPermission();
+    final hasPermission = permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
+    
+    if (mounted) {
+      setState(() {
+        _hasLocationPermission = hasPermission;
+        _checkingPermission = false;
+      });
+      
+      if (hasPermission) {
+        _loadNearbyPubs();
+      }
+    }
   }
 
   Future<void> _loadNearbyPubs() async {
@@ -85,10 +113,33 @@ class _LogPintScreenState extends State<LogPintScreen> {
     }
 
     setState(() => _isSubmitting = true);
+    
+    // Haptic feedback for button press
+    HapticFeedback.mediumImpact();
 
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) {
+        setState(() => _isSubmitting = false);
+        return;
+      }
+
+      // Check if this is a new pub for the user
+      final existingPints = await Supabase.instance.client
+          .from('pints')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('pub_id', _selectedPub!['id'])
+          .limit(1);
+      final isNewPub = existingPints.isEmpty;
+
+      // Check if this is user's first pint ever
+      final allPints = await Supabase.instance.client
+          .from('pints')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1);
+      final isFirstPint = allPints.isEmpty;
 
       await SupabaseService.logPint(
         userId: userId,
@@ -98,15 +149,25 @@ class _LogPintScreenState extends State<LogPintScreen> {
         quantity: _quantity,
       );
 
+      // Calculate points earned
+      int pointsEarned = _quantity * 10; // Base points
+      if (isNewPub) pointsEarned += 5; // New pub bonus
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Logged $_quantity $_drinkType${_quantity > 1 ? 's' : ''} at ${_selectedPub!['name']}',
-            ),
-          ),
+        // Show celebration!
+        await showPintCelebration(
+          context,
+          pubName: _selectedPub!['name'],
+          quantity: _quantity,
+          drinkType: _drinkType,
+          pointsEarned: pointsEarned,
+          isFirstPint: isFirstPint,
+          isNewPub: isNewPub,
         );
-        context.pop();
+        
+        if (mounted) {
+          context.pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -175,15 +236,57 @@ class _LogPintScreenState extends State<LogPintScreen> {
                 'Nearby Pubs',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: _loadNearbyPubs,
-              ),
+              if (_hasLocationPermission)
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadNearbyPubs,
+                ),
             ],
           ),
           const SizedBox(height: 8),
-          if (_isLoadingNearby)
-            const Center(child: CircularProgressIndicator())
+          if (_checkingPermission)
+            const SkeletonLoading(type: SkeletonType.pubList, itemCount: 3)
+          else if (!_hasLocationPermission)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.location_disabled,
+                      size: 48,
+                      color: Colors.orange.shade400,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Location access needed',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enable location to see nearby pubs',
+                      style: TextStyle(color: Colors.grey.shade600),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final permission = await Geolocator.requestPermission();
+                        if (permission == LocationPermission.whileInUse ||
+                            permission == LocationPermission.always) {
+                          setState(() => _hasLocationPermission = true);
+                          _loadNearbyPubs();
+                        }
+                      },
+                      icon: const Icon(Icons.location_on),
+                      label: const Text('Enable Location'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (_isLoadingNearby)
+            const SkeletonLoading(type: SkeletonType.pubList, itemCount: 5)
           else if (_nearbyPubs.isEmpty)
             Card(
               child: Padding(

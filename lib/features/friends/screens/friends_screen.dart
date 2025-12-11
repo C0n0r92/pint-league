@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/supabase_service.dart';
 import '../../../core/services/contacts_service.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -117,7 +118,10 @@ class _FriendsScreenState extends State<FriendsScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: SkeletonLoading(type: SkeletonType.friendList, itemCount: 5),
+            )
           : TabBarView(
               controller: _tabController,
               children: [
