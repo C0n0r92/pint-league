@@ -36,28 +36,31 @@ class _FriendsScreenState extends State<FriendsScreen>
     setState(() => _isLoading = true);
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     try {
+      // Use bidirectional friends function
       final friends = await SupabaseService.getFriends(userId);
-
-      // Load pending requests
-      final pending = await Supabase.instance.client
-          .from('friendships')
-          .select('*, profiles!friendships_user_id_fkey(*)')
-          .eq('friend_id', userId)
-          .eq('status', 'pending');
+      
+      // Use bidirectional pending requests function
+      final pending = await SupabaseService.getPendingFriendRequests(userId);
 
       if (mounted) {
         setState(() {
           _friends = friends;
-          _pendingRequests = List<Map<String, dynamic>>.from(pending);
+          _pendingRequests = pending;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load friends: $e')),
+        );
       }
     }
   }
@@ -292,11 +295,8 @@ class _FriendsTab extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         itemCount: friends.length,
         itemBuilder: (context, index) {
-          final friendship = friends[index];
-          final friend = friendship['friend'] as Map<String, dynamic>?;
-
-          if (friend == null) return const SizedBox();
-
+          // New function returns flat data with friend info directly
+          final friend = friends[index];
           return _FriendCard(friend: friend);
         },
       ),
@@ -366,10 +366,12 @@ class _RequestsTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: requests.length,
       itemBuilder: (context, index) {
+        // New function returns flat data
         final request = requests[index];
-        final profile = request['profiles'] as Map<String, dynamic>?;
-
-        if (profile == null) return const SizedBox();
+        final username = request['username'] as String? ?? 'Unknown';
+        final displayName = request['display_name'] as String?;
+        final avatarUrl = request['avatar_url'] as String?;
+        final friendshipId = request['friendship_id'] as String;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -378,12 +380,11 @@ class _RequestsTab extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: profile['avatar_url'] != null
-                      ? NetworkImage(profile['avatar_url'])
+                  backgroundImage: avatarUrl != null
+                      ? NetworkImage(avatarUrl)
                       : null,
-                  child: profile['avatar_url'] == null
-                      ? Text((profile['username'] as String? ?? 'U')[0]
-                          .toUpperCase())
+                  child: avatarUrl == null
+                      ? Text(username[0].toUpperCase())
                       : null,
                 ),
                 const SizedBox(width: 12),
@@ -392,11 +393,11 @@ class _RequestsTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        profile['display_name'] ?? profile['username'],
+                        displayName ?? username,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(
-                        '@${profile['username']}',
+                        '@$username',
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                     ],
@@ -404,11 +405,11 @@ class _RequestsTab extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.red),
-                  onPressed: () => onDecline(request['id']),
+                  onPressed: () => onDecline(friendshipId),
                 ),
                 IconButton(
                   icon: const Icon(Icons.check, color: Colors.green),
-                  onPressed: () => onAccept(request['id']),
+                  onPressed: () => onAccept(friendshipId),
                 ),
               ],
             ),

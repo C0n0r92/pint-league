@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,18 +21,37 @@ import '../features/settings/screens/settings_screen.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-// Auth state notifier for router refresh
+// Auth state notifier for router refresh - properly manages subscription
 class AuthNotifier extends ChangeNotifier {
+  StreamSubscription<AuthState>? _subscription;
+  
   AuthNotifier() {
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       notifyListeners();
     });
   }
+  
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 }
 
-final _authNotifier = AuthNotifier();
+// Use a provider so it can be properly disposed
+final _authNotifierProvider = Provider<AuthNotifier>((ref) {
+  final notifier = AuthNotifier();
+  ref.onDispose(() => notifier.dispose());
+  return notifier;
+});
+
+// For non-riverpod contexts, keep a reference
+late final AuthNotifier _authNotifier;
 
 final routerProvider = Provider<GoRouter>((ref) {
+  // Get auth notifier from provider (ensures proper disposal)
+  _authNotifier = ref.watch(_authNotifierProvider);
+  
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',

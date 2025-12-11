@@ -206,13 +206,20 @@ class SupabaseService {
     });
   }
 
-  // Friends methods
+  // Friends methods - uses bidirectional RPC function
   static Future<List<Map<String, dynamic>>> getFriends(String userId) async {
-    final response = await client
-        .from('friendships')
-        .select('*, friend:profiles!friendships_friend_id_fkey(*)')
-        .eq('user_id', userId)
-        .eq('status', 'accepted');
+    // Use the bidirectional function that returns friends from both directions
+    final response = await client.rpc('get_user_friends', params: {
+      'target_user_id': userId,
+    });
+    return List<Map<String, dynamic>>.from(response);
+  }
+  
+  // Get pending friend requests (where user is recipient)
+  static Future<List<Map<String, dynamic>>> getPendingFriendRequests(String userId) async {
+    final response = await client.rpc('get_pending_friend_requests', params: {
+      'target_user_id': userId,
+    });
     return List<Map<String, dynamic>>.from(response);
   }
 
