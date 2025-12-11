@@ -229,7 +229,10 @@ void callbackDispatcher() {
             'SUPABASE_URL',
             defaultValue: 'https://hsdhlnjpwbendlwfoyqp.supabase.co',
           ),
-          anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+          anonKey: const String.fromEnvironment(
+            'SUPABASE_ANON_KEY',
+            defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzZGhsbmpwd2JlbmRsd2ZveXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODYwNjcsImV4cCI6MjA4MDk2MjA2N30.Qx0N2eN9yx_pGceAdiv4Jk2yfyOSIKqZAbqT0ZkM-C8',
+          ),
         );
 
         final prefs = await SharedPreferences.getInstance();

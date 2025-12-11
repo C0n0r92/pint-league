@@ -10,23 +10,42 @@ class ContactsService {
   ContactsService(this._supabase);
 
   /// Normalize phone number to E.164 format
-  String _normalizePhone(String phone, {String defaultCountry = 'GB'}) {
-    // Remove all non-digits
+  /// Detects country from phone prefix or uses user's profile country
+  String _normalizePhone(String phone, {String? defaultCountry}) {
+    // Auto-detect country if not provided
+    final country = defaultCountry ?? _detectCountryFromPhone(phone) ?? 'GB';
+    return _normalizePhoneWithCountry(phone, country);
+  }
+
+  String? _detectCountryFromPhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (digits.startsWith('+353') || digits.startsWith('353')) return 'IE';
+    if (digits.startsWith('+44') || digits.startsWith('44')) return 'GB';
+    if (digits.startsWith('08')) return 'IE'; // Irish mobile
+    if (digits.startsWith('07')) return 'GB'; // UK mobile
+    return null;
+  }
+
+  String _normalizePhoneWithCountry(String phone, String country) {
+    // Remove all non-digits except leading +
     String digits = phone.replaceAll(RegExp(r'[^\d]'), '');
 
-    // Handle UK/Ireland numbers
+    // Handle local numbers starting with 0
     if (digits.startsWith('0')) {
-      // UK: 07xxx -> +447xxx, Ireland: 08x -> +3538x
-      if (defaultCountry == 'GB') {
-        digits = '44${digits.substring(1)}';
-      } else if (defaultCountry == 'IE') {
+      if (country == 'IE') {
         digits = '353${digits.substring(1)}';
+      } else {
+        digits = '44${digits.substring(1)}';
       }
     }
 
-    // Ensure starts with country code
-    if (!digits.startsWith('44') && !digits.startsWith('353')) {
-      digits = '44$digits'; // Default to UK
+    // If no country code, add based on detected country
+    if (!digits.startsWith('44') && !digits.startsWith('353') && !digits.startsWith('1')) {
+      if (country == 'IE') {
+        digits = '353$digits';
+      } else {
+        digits = '44$digits';
+      }
     }
 
     return '+$digits';

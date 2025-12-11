@@ -22,13 +22,24 @@ Future<void> main() async {
     ),
     anonKey: const String.fromEnvironment(
       'SUPABASE_ANON_KEY',
-      defaultValue: '',
+      // Default key for development - replace in production
+      defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzZGhsbmpwd2JlbmRsd2ZveXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzODYwNjcsImV4cCI6MjA4MDk2MjA2N30.Qx0N2eN9yx_pGceAdiv4Jk2yfyOSIKqZAbqT0ZkM-C8',
     ),
   );
 
-  // Initialize services
-  await NotificationService.instance.initialize();
-  await GeofenceService.instance.initialize();
+  // Initialize services after auth state is ready
+  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    if (data.event == AuthChangeEvent.signedIn) {
+      NotificationService.instance.initialize();
+      GeofenceService.instance.initialize();
+    }
+  });
+  
+  // Initialize if already logged in
+  if (Supabase.instance.client.auth.currentUser != null) {
+    await NotificationService.instance.initialize();
+    await GeofenceService.instance.initialize();
+  }
 
   runApp(
     const ProviderScope(

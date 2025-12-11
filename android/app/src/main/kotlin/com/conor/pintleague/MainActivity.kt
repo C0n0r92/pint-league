@@ -1,4 +1,4 @@
-package com.conor.pintsleague
+package com.conor.pintleague
 
 import io.flutter.embedding.android.FlutterActivity
 

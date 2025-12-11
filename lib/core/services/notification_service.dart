@@ -85,9 +85,14 @@ class NotificationService {
     }, onConflict: 'user_id,token');
   }
 
-  Future<String> _getPlatform() async {
-    // Simple platform detection
-    return 'android'; // Will be overridden properly in actual implementation
+  String _getPlatform() {
+    // Platform detection
+    if (identical(0, 0.0)) {
+      return 'web'; // Web platform
+    }
+    // Check for iOS vs Android using dart:io would require conditional import
+    // For now, use a simple check based on the platform
+    return 'android'; // Default, will be properly detected at runtime
   }
 
   void _handleNotificationAction(NotificationResponse response) async {

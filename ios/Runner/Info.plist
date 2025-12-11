@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Pintsleague</string>
+	<string>Pints League</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>pintsleague</string>
+	<string>Pints League</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,35 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.conor.pintsleague</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>pintsleague</string>
+				<string>com.conor.pintsleague</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pints League needs your location to detect pub visits and log your pints automatically.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Pints League needs background location access to detect pub visits even when the app is closed.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Pints League can find your friends who are also using the app.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos of your pints to share with friends.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Select photos of your pints to share with friends.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>location</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

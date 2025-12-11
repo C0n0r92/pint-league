@@ -28,19 +28,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() => _isLoading = true);
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     try {
-      final profile = await SupabaseService.getProfile(userId);
+      // Profile might not exist for new users, handle gracefully
+      Map<String, dynamic>? profile;
+      try {
+        profile = await SupabaseService.getProfile(userId);
+      } catch (e) {
+        // Profile doesn't exist yet, use defaults
+        profile = {
+          'username': 'User',
+          'total_pints': 0,
+          'total_points': 0,
+        };
+      }
+      
       final pints = await SupabaseService.getPints(userId: userId, limit: 5);
 
       // Get current week start (Monday)
       final now = DateTime.now();
       final weekStart = now.subtract(Duration(days: now.weekday - 1));
-      final weeklyPoints = await SupabaseService.getWeeklyPoints(
-        userId: userId,
-        weekStart: weekStart,
-      );
+      Map<String, dynamic>? weeklyPoints;
+      try {
+        weeklyPoints = await SupabaseService.getWeeklyPoints(
+          userId: userId,
+          weekStart: weekStart,
+        );
+      } catch (e) {
+        weeklyPoints = null;
+      }
 
       if (mounted) {
         setState(() {
@@ -53,6 +73,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
       }
     }
   }

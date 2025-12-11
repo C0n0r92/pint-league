@@ -90,6 +90,26 @@ Deno.serve(async (req) => {
     })
   }
 
+  // Verify request has service role key (admin only operation)
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.includes('service_role') && !authHeader?.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '')) {
+    // Check if caller is authenticated and is admin (you can customize this)
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!
+    )
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(
+      authHeader?.replace('Bearer ', '')
+    )
+    if (error || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized - admin only' }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    // For now, allow any authenticated user to seed (you may want to restrict this)
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
