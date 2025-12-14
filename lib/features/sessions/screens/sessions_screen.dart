@@ -77,26 +77,26 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
     try {
       // Mark session as verified
-      await Supabase.instance.client
-          .from('sessions')
-          .update({'verified': true}).eq('id', session['id']);
+    await Supabase.instance.client
+        .from('sessions')
+        .update({'verified': true}).eq('id', session['id']);
 
       // Create pints
-      await Supabase.instance.client.from('pints').insert({
+    await Supabase.instance.client.from('pints').insert({
         'user_id': userId,
-        'pub_id': session['pub_id'],
-        'pub_name': session['pub_name'],
-        'session_id': session['id'],
+      'pub_id': session['pub_id'],
+      'pub_name': session['pub_name'],
+      'session_id': session['id'],
         'quantity': session['estimated_pints'] ?? 1,
-        'source': 'geo_auto',
-        'logged_at': DateTime.now().toIso8601String(),
-      });
+      'source': 'geo_auto',
+      'logged_at': DateTime.now().toIso8601String(),
+    });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Visit confirmed!')),
-        );
-        _loadSessions();
+    );
+    _loadSessions();
       }
     } catch (e) {
       if (mounted) {
@@ -109,15 +109,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   Future<void> _discardSession(Map<String, dynamic> session) async {
     try {
-      await Supabase.instance.client
-          .from('sessions')
-          .update({'discarded': true}).eq('id', session['id']);
+    await Supabase.instance.client
+        .from('sessions')
+        .update({'discarded': true}).eq('id', session['id']);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Visit discarded')),
         );
-        _loadSessions();
+    _loadSessions();
       }
     } catch (e) {
       if (mounted) {
@@ -237,25 +237,25 @@ class _SessionCard extends StatelessWidget {
               ],
             ),
             if (!isActive && !discarded) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _InfoChip(
-                    icon: Icons.timer,
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _InfoChip(
+                  icon: Icons.timer,
                     label: '$durationMinutes min',
-                  ),
-                  const SizedBox(width: 8),
-                  _InfoChip(
-                    icon: Icons.sports_bar,
+                ),
+                const SizedBox(width: 8),
+                _InfoChip(
+                  icon: Icons.sports_bar,
                     label: '$estimatedPints pint${estimatedPints > 1 ? 's' : ''}',
-                  ),
-                  const SizedBox(width: 8),
-                  _InfoChip(
+                ),
+                const SizedBox(width: 8),
+                _InfoChip(
                     icon: _getSourceIcon(source),
                     label: _getConfidenceLabel(confidence),
-                  ),
-                ],
-              ),
+                ),
+              ],
+            ),
             ],
             if (isPending) ...[
               const SizedBox(height: 12),

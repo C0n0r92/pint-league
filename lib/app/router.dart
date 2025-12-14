@@ -18,6 +18,7 @@ import '../features/leagues/screens/join_league_screen.dart';
 import '../features/friends/screens/friends_screen.dart';
 import '../features/sessions/screens/sessions_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/bank/screens/connect_bank_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -159,6 +160,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => LeagueDetailScreen(
           leagueId: state.pathParameters['id']!,
         ),
+      ),
+      
+      // Bank connection
+      GoRoute(
+        path: '/connect-bank',
+        builder: (context, state) => const ConnectBankScreen(),
       ),
 
       // TrueLayer callback (deep link)

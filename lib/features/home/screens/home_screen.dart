@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/services/supabase_service.dart';
 import '../../../core/widgets/skeleton_loading.dart';
@@ -18,6 +19,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<Map<String, dynamic>> _recentPints = [];
   Map<String, dynamic>? _weeklyPoints;
   bool _isLoading = true;
+  bool _hasBankConnection = false;
 
   @override
   void initState() {
@@ -50,12 +52,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       
       final pints = await SupabaseService.getPints(userId: userId, limit: 5);
 
-      // Get current week start (Monday)
+      // Check if user has connected a bank
+      bool hasBankConnection = false;
+      try {
+        final bankConnections = await Supabase.instance.client
+            .from('bank_connections')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1);
+        hasBankConnection = (bankConnections as List).isNotEmpty;
+      } catch (e) {
+        // Bank connections table might not exist or other error
+        hasBankConnection = false;
+      }
+
+      // Get current week start (Monday at midnight)
       final now = DateTime.now();
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final weekStart = DateTime(now.year, now.month, now.day - (now.weekday - 1));
       Map<String, dynamic>? weeklyPoints;
       try {
-        weeklyPoints = await SupabaseService.getWeeklyPoints(
+        // Use real-time calculation from pints table for immediate feedback
+        weeklyPoints = await SupabaseService.getWeeklyStatsRealtime(
           userId: userId,
           weekStart: weekStart,
         );
@@ -68,6 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _profile = profile;
           _recentPints = pints;
           _weeklyPoints = weeklyPoints;
+          _hasBankConnection = hasBankConnection;
           _isLoading = false;
         });
       }
@@ -105,13 +123,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _WelcomeCard(
                     username: _profile?['username'] ?? 'User',
                     avatarUrl: _profile?['avatar_url'],
-                  ),
+                  ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2, end: 0),
                   const SizedBox(height: 16),
+
+                  // Bank connection prompt (if not connected)
+                  if (!_hasBankConnection)
+                    _BankConnectionCard(
+                      onConnect: () => context.push('/connect-bank'),
+                    ).animate().fadeIn(delay: 100.ms, duration: 300.ms).slideX(begin: -0.2, end: 0),
+                  if (!_hasBankConnection) const SizedBox(height: 16),
 
                   // Weekly stats card
                   _WeeklyStatsCard(
                     weeklyPoints: _weeklyPoints,
-                  ),
+                  ).animate().fadeIn(delay: 200.ms, duration: 300.ms).scale(begin: const Offset(0.9, 0.9)),
                   const SizedBox(height: 16),
 
                   // Quick actions
@@ -258,13 +283,14 @@ class _WeeklyStatsCard extends StatelessWidget {
     final breakdown =
         weeklyPoints?['breakdown'] as Map<String, dynamic>? ?? {};
 
-    // Calculate pints from base points (10 pts per pint)
-    final basePoints = breakdown['base'] ?? 0;
-    final pintsCount = basePoints ~/ 10;
+    // Use direct counts if available, otherwise calculate from points
+    final pintsCount = weeklyPoints?['pints_count'] ?? 
+        ((breakdown['base'] as int? ?? 0) ~/ 10);
+    final uniquePubsCount = weeklyPoints?['unique_pubs_count'] ?? 
+        ((breakdown['unique_pubs'] as int? ?? 0) ~/ 5);
     
-    // Calculate unique pubs from bonus (5 pts per new pub)
-    final uniquePubPoints = breakdown['unique_pubs'] ?? 0;
-    final uniquePubsCount = uniquePubPoints ~/ 5;
+    final basePoints = breakdown['base'] as int? ?? 0;
+    final uniquePubPoints = breakdown['unique_pubs'] as int? ?? 0;
 
     return Card(
       child: Padding(
@@ -524,6 +550,168 @@ class _PintListItem extends StatelessWidget {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+}
+
+class _BankConnectionCard extends StatelessWidget {
+  final VoidCallback onConnect;
+
+  const _BankConnectionCard({required this.onConnect});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primary.withOpacity(0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Auto-Track Your Pints',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Connect your bank for automatic tracking',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _BenefitChip(icon: Icons.auto_awesome, label: 'Auto-log pints'),
+                  const SizedBox(width: 8),
+                  _BenefitChip(icon: Icons.verified, label: '+5 bonus pts'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onConnect,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.link),
+                      SizedBox(width: 8),
+                      Text(
+                        'Connect Bank',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Read-only • Secure • Disconnect anytime',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BenefitChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _BenefitChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

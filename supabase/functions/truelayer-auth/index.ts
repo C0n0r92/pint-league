@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
 
   // GET - Generate auth link
   if (req.method === 'GET') {
-    const authUrl = new URL('https://auth.truelayer.com/')
+    // Use sandbox URL for sandbox credentials
+    const authUrl = new URL('https://auth.truelayer-sandbox.com/')
     authUrl.searchParams.set('response_type', 'code')
     authUrl.searchParams.set('client_id', TRUELAYER_CLIENT_ID)
     authUrl.searchParams.set('redirect_uri', REDIRECT_URI)
@@ -100,8 +101,8 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Exchange authorization code for tokens
-      const tokenResponse = await fetch('https://auth.truelayer.com/connect/token', {
+      // Exchange authorization code for tokens (use sandbox endpoint)
+      const tokenResponse = await fetch('https://auth.truelayer-sandbox.com/connect/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

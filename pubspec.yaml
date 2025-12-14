@@ -48,6 +48,13 @@ dependencies:
   shimmer: ^3.0.0
   confetti: ^0.7.0
   lottie: ^3.1.0
+  flutter_animate: ^4.5.0
+  flutter_staggered_animations: ^1.1.1
+  fl_chart: ^0.68.0
+  flutter_slidable: ^3.1.0
+  badges: ^3.1.2
+  animated_text_kit: ^4.2.2
+  gradient_borders: ^1.0.1
   
   # Image Handling
   image_picker: ^1.0.5
@@ -64,6 +71,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_native_splash: ^2.3.10
   
   # Code Generation
   build_runner: ^2.4.7
@@ -77,6 +85,18 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+# Splash Screen Configuration
+flutter_native_splash:
+  color: "#FF6B35"
+  # image: assets/images/splash_logo.png  # Add your logo here
+  color_dark: "#1a1a1a"
+  android_12:
+    color: "#FF6B35"
+    color_dark: "#1a1a1a"
+  ios: true
+  android: true
+  web: false
 
   # Uncomment and add font files to use custom fonts
   # fonts:

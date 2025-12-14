@@ -120,6 +120,29 @@ class SupabaseService {
       'source': 'manual',
       'logged_at': DateTime.now().toIso8601String(),
     });
+
+    // Update profile total_pints and total_points
+    try {
+      await client.rpc('increment_profile_stats', params: {
+        'p_user_id': userId,
+        'p_pints': quantity,
+        'p_points': quantity * 10, // Base points per pint
+      });
+    } catch (e) {
+      // If RPC doesn't exist, try direct update
+      final profile = await client
+          .from('profiles')
+          .select('total_pints, total_points')
+          .eq('id', userId)
+          .maybeSingle();
+      
+      if (profile != null) {
+        await client.from('profiles').update({
+          'total_pints': (profile['total_pints'] ?? 0) + quantity,
+          'total_points': (profile['total_points'] ?? 0) + (quantity * 10),
+        }).eq('id', userId);
+      }
+    }
   }
 
   // Pubs methods
@@ -252,6 +275,53 @@ class SupabaseService {
         .eq('week_start', weekStart.toIso8601String().split('T')[0])
         .maybeSingle();
     return response;
+  }
+
+  /// Calculate real-time stats from pints table for the current week
+  static Future<Map<String, dynamic>> getWeeklyStatsRealtime({
+    required String userId,
+    required DateTime weekStart,
+  }) async {
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    
+    // Get all pints for this week
+    final pints = await client
+        .from('pints')
+        .select('id, pub_id, quantity, logged_at')
+        .eq('user_id', userId)
+        .gte('logged_at', weekStart.toIso8601String())
+        .lt('logged_at', weekEnd.toIso8601String());
+    
+    final pintsList = List<Map<String, dynamic>>.from(pints);
+    
+    // Calculate stats
+    int totalPints = 0;
+    final uniquePubs = <String>{};
+    
+    for (final pint in pintsList) {
+      totalPints += (pint['quantity'] as int? ?? 1);
+      if (pint['pub_id'] != null) {
+        uniquePubs.add(pint['pub_id'] as String);
+      }
+    }
+    
+    // Calculate points (10 per pint + 5 per unique pub)
+    final basePoints = totalPints * 10;
+    final uniquePubPoints = uniquePubs.length * 5;
+    final totalPoints = basePoints + uniquePubPoints;
+    
+    return {
+      'total_points': totalPoints,
+      'breakdown': {
+        'base': basePoints,
+        'unique_pubs': uniquePubPoints,
+        'social': 0,
+        'streak': 0,
+        'verification': 0,
+      },
+      'pints_count': totalPints,
+      'unique_pubs_count': uniquePubs.length,
+    };
   }
 }
 
